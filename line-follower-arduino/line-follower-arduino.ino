@@ -19,6 +19,9 @@ const int midSen=10;
 const int RinnerSen=11;
 const int RouterSen=12;
 
+const int trigPin = A2;
+const int echoPin = A3;
+
 int s1,s2,s3,s4,s5;
 void setup() {
   pinMode(in1,OUTPUT);
@@ -34,6 +37,10 @@ void setup() {
   pinMode(RinnerSen,INPUT);
   pinMode(RouterSen, INPUT);
 
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+Serial.begin(9600);
 }
 
 
@@ -50,9 +57,36 @@ float integral = 0;
 
 int baseSpeed = 120;
 
+long duration;
+long distance;
+
+unsigned long lastUltrasonicRead = 0;
+const unsigned long ultrasonicInterval = 100; // 100ms
+
+int currentSpeed = 0;
+
 void loop() {
+  if (millis() - lastUltrasonicRead >= ultrasonicInterval) {
+    lastUltrasonicRead = millis();
+    readUltrasonic();
+  }
+
+  if (distance > 0 && distance < 20) { // Nếu phát hiện bậc thang (khoảng cách gần)
+   Serial.println("gap vat can");
+    stopMotors();
+    delay(300);          // Dừng 300ms
+    fullSpeedForward();  // Tăng tốc mạnh
+    delay(1500);         // Chạy mạnh 1.5 giây để leo bậc
+    return;              // Sau đó quay lại follow line
+  }
   readSensor();
 
+  int sumSensor = s1 + s2 + s3 + s4 + s5;
+  if(sumSensor == 5){
+    stopMotors();
+    while(true);
+  }
+  
   int sensors[5] = {s1, s2, s3, s4, s5};
   int activeCount = 0;
   int position = 0;
@@ -105,6 +139,40 @@ if (activeCount == 0) {
   delay(10); // Delay nhỏ để mượt hơn
 
 }
+
+void accelerateForward() {
+  for (currentSpeed = 0; currentSpeed < baseSpeed; currentSpeed++) {
+    forward(currentSpeed, currentSpeed); // Điều khiển động cơ
+    delay(10); // Thời gian nhỏ để tăng tốc từ từ
+  }
+}
+void fullSpeedForward(){
+  forward(255,255);
+}
+
+// ------ Đọc cảm biến siêu âm ------
+void readUltrasonic() {
+  digitalWrite(trigPin, LOW);  // Đảm bảo Trigger ở mức thấp trước khi phát tín hiệu
+  delayMicroseconds(2);  // Đảm bảo không có tín hiệu dư
+
+  digitalWrite(trigPin, HIGH);  // Gửi tín hiệu siêu âm
+  delayMicroseconds(10);  // Kéo dài tín hiệu gửi (10 microseconds)
+  digitalWrite(trigPin, LOW);  // Dừng tín hiệu
+
+  duration = pulseIn(echoPin, HIGH);  // Đo thời gian phản hồi, tối đa 30ms (điều chỉnh thời gian chờ nếu cần)
+  distance = duration * 0.034 / 2;    // Tính khoảng cách từ thời gian phản hồi
+
+
+  // Kiểm tra nếu khoảng cách không hợp lệ hoặc ngoài phạm vi
+  if (distance <= 0 || distance > 400) {
+    distance = -1;  // Đặt giá trị lỗi
+    Serial.println("No valid echo response or out of range");
+  } else {
+    Serial.print("Distance: ");
+    Serial.println(distance);  // In ra khoảng cách
+  }
+}
+
 
 void readSensor(){
   s1 = digitalRead(LouterSen);
@@ -171,4 +239,12 @@ void turnRightWeak(int Lspeed, int Rspeed){
   analogWrite(enb, Lspeed);
 }
 
+void stopMotors(){
+    digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+  digitalWrite(in4, LOW);
+  digitalWrite(in3, LOW);
+  analogWrite(ena, 0);
+  analogWrite(enb, 0);
+}
 
