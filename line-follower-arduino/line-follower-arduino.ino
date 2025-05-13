@@ -74,18 +74,18 @@ void loop() {
   if (distance > 0 && distance < 20) { // Nếu phát hiện bậc thang (khoảng cách gần)
    Serial.println("gap vat can");
     stopMotors();
-    delay(300);          // Dừng 300ms
+    delay(200);          // Dừng 300ms
     fullSpeedForward();  // Tăng tốc mạnh
-    delay(1500);         // Chạy mạnh 1.5 giây để leo bậc
+    delay(1000);         // Chạy mạnh 1.5 giây để leo bậc
     return;              // Sau đó quay lại follow line
   }
   readSensor();
 
-  int sumSensor = s1 + s2 + s3 + s4 + s5;
-  if(sumSensor == 5){
-    stopMotors();
-    while(true);
-  }
+  // int sumSensor = s1 + s2 + s3 + s4 + s5;
+  // if(sumSensor == 5){
+  //   stopMotors();
+  //   while(true);
+  // }
   
   int sensors[5] = {s1, s2, s3, s4, s5};
   int activeCount = 0;
